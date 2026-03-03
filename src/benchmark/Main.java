@@ -1,125 +1,69 @@
 package benchmark;
 
-import algorithms.Fibonacci;
-
+import algorithms.*;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 
-/**
- * ============================================================
- * PUNTO DE ENTRADA — BENCHMARK FIBONACCI
- * ============================================================
- * Ejecuta ambas versiones de Fibonacci para distintos valores de n,
- * mide sus tiempos y exporta los resultados a un archivo CSV.
- *
- * CÓMO COMPILAR (desde la carpeta raíz del proyecto):
- *   javac -d out src/algorithms/Fibonacci.java src/benchmark/Medidor.java src/benchmark/Main.java
- *
- * CÓMO EJECUTAR:
- *   java -cp out benchmark.Main
- * ============================================================
- */
 public class Main {
-
-    // ----------------------------------------------------------------
-    // TAMAÑOS DE PRUEBA
-    // ----------------------------------------------------------------
-    /**
-     * Valores de n para los que se ejecutará el benchmark.
-     *
-     * ITERATIVO: puede manejar n grandes (hasta ~92 con long)
-     * RECURSIVO: limitado a n ≤ 30 por la complejidad O(2^n)
-     *   fib(30) → ~2.7 millones de llamadas
-     *   fib(40) → ~2.7 mil millones de llamadas (tarda minutos)
-     */
-    private static final int[] TAMANOS = {5, 10, 15, 20, 25, 30};
-
-    /** Ruta del archivo de resultados */
-    private static final String CSV_PATH = "resultados/tiempos.csv";
-
-    // ----------------------------------------------------------------
-    // MAIN
-    // ----------------------------------------------------------------
     public static void main(String[] args) {
-        imprimirBanner();
+        try (FileWriter writer = new FileWriter("resultados/tiempos.csv")) {
+            writer.write("Algoritmo,Version,n,Tiempo_ms\n");
+            Medidor.imprimirEncabezado();
 
-        StringBuilder csv = new StringBuilder();
-        csv.append("Algoritmo,Version,n,Resultado,Tiempo_ms\n");
+            // Factorial
+            for (int n : new int[] { 5, 10, 15, 20, 25, 30 }) {
+                double tIter = Medidor.medir(() -> Factorial.factorialIterativo(n));
+                double tRec = Medidor.medir(() -> Factorial.factorialRecursivo(n));
+                Medidor.imprimirFila("Factorial", "Iterativo", n, tIter);
+                Medidor.imprimirFila("Factorial", "Recursivo", n, tRec);
+                writer.write("Factorial,Iterativo," + n + "," + tIter + "\n");
+                writer.write("Factorial,Recursivo," + n + "," + tRec + "\n");
+            }
 
-        // ---- FIBONACCI ITERATIVO ----
-        System.out.println("\n  FIBONACCI ITERATIVO  [O(n)]");
-        Medidor.imprimirEncabezado();
+            // Fibonacci
+            for (int n : new int[] { 5, 10, 15, 20, 25, 30 }) {
+                double tIter = Medidor.medir(() -> Fibonacci.iterativo(n));
+                double tRec = Medidor.medir(() -> Fibonacci.recursivo(n));
+                Medidor.imprimirFila("Fibonacci", "Iterativo", n, tIter);
+                Medidor.imprimirFila("Fibonacci", "Recursivo", n, tRec);
+                writer.write("Fibonacci,Iterativo," + n + "," + tIter + "\n");
+                writer.write("Fibonacci,Recursivo," + n + "," + tRec + "\n");
+            }
 
-        for (int n : TAMANOS) {
-            final int fn = n;
+            // Búsqueda Lineal
+            int[] arr = new int[10000];
+            for (int i = 0; i < arr.length; i++)
+                arr[i] = i;
+            for (int n : new int[] { 100, 500, 1000, 5000, 10000 }) {
+                double tIter = Medidor.medir(() -> BusquedaLineal.buscarIterativo(arr, n));
+                double tRec = Medidor.medir(() -> BusquedaLineal.buscarRecursivo(arr, n, 0));
+                Medidor.imprimirFila("BusquedaLineal", "Iterativo", n, tIter);
+                Medidor.imprimirFila("BusquedaLineal", "Recursivo", n, tRec);
+                writer.write("BusquedaLineal,Iterativo," + n + "," + tIter + "\n");
+                writer.write("BusquedaLineal,Recursivo," + n + "," + tRec + "\n");
+            }
 
-            // Calcular resultado una vez (solo para mostrarlo)
-            long resultado = Fibonacci.iterativo(fn);
+            // Burbuja
+            for (int n : new int[] { 100, 500, 1000, 5000, 10000 }) {
+                int[] datos = generarDatos(n);
+                double tIter = Medidor.medir(() -> OrdenamientoBurbuja.burbujaIterativo(datos.clone()));
+                double tRec = Medidor.medir(() -> OrdenamientoBurbuja.burbujaRecursivo(datos.clone(), datos.length));
+                Medidor.imprimirFila("Burbuja", "Iterativo", n, tIter);
+                Medidor.imprimirFila("Burbuja", "Recursivo", n, tRec);
+                writer.write("Burbuja,Iterativo," + n + "," + tIter + "\n");
+                writer.write("Burbuja,Recursivo," + n + "," + tRec + "\n");
+            }
 
-            // Medir solo el algoritmo puro (sin I/O ni inicialización)
-            double tiempoMs = Medidor.medir(() -> Fibonacci.iterativo(fn));
-
-            Medidor.imprimirFila("Fibonacci", "Iterativo", n, tiempoMs);
-            csv.append(String.format("Fibonacci,Iterativo,%d,%d,%.6f%n", n, resultado, tiempoMs));
-        }
-
-        // ---- FIBONACCI RECURSIVO ----
-        System.out.println("\n  FIBONACCI RECURSIVO  [O(2^n)]");
-        Medidor.imprimirEncabezado();
-
-        for (int n : TAMANOS) {
-            final int fn = n;
-
-            long resultado = Fibonacci.recursivo(fn);
-            double tiempoMs = Medidor.medir(() -> Fibonacci.recursivo(fn));
-
-            Medidor.imprimirFila("Fibonacci", "Recursivo", n, tiempoMs);
-            csv.append(String.format("Fibonacci,Recursivo,%d,%d,%.6f%n", n, resultado, tiempoMs));
-        }
-
-        // ---- ANÁLISIS DE DIFERENCIA ----
-        System.out.println("\n  COMPARACIÓN ITERATIVO vs RECURSIVO");
-        System.out.println("-".repeat(60));
-        System.out.printf("%-8s | %-14s | %-14s | %s%n",
-                "n", "Iterativo (ms)", "Recursivo (ms)", "Recursivo / Iterativo");
-        System.out.println("-".repeat(60));
-
-        for (int n : TAMANOS) {
-            final int fn = n;
-            double tIter = Medidor.medir(() -> Fibonacci.iterativo(fn));
-            double tRec  = Medidor.medir(() -> Fibonacci.recursivo(fn));
-            double factor = (tIter > 0) ? tRec / tIter : 0;
-
-            System.out.printf("n=%-6d | %-14.6f | %-14.6f | %.1fx más lento%n",
-                    n, tIter, tRec, factor);
-        }
-
-        // ---- EXPORTAR CSV ----
-        exportarCSV(csv.toString());
-
-        System.out.println("\n============================================================");
-        System.out.println("  Resultados exportados → " + CSV_PATH);
-        System.out.println("============================================================");
-    }
-
-    // ----------------------------------------------------------------
-    // AUXILIARES
-    // ----------------------------------------------------------------
-    private static void imprimirBanner() {
-        System.out.println("============================================================");
-        System.out.println("  ESTRUCTURA DE DATOS — BENCHMARK FIBONACCI");
-        System.out.println("  Universidad Da Vinci de Guatemala");
-        System.out.println("  Ing. Brandon Chitay");
-        System.out.println("============================================================");
-    }
-
-    private static void exportarCSV(String contenido) {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(CSV_PATH))) {
-            pw.print(contenido);
-            System.out.println("\n  ✓ CSV generado exitosamente en: " + CSV_PATH);
+            System.out.println("\n✓ Resultados guardados en resultados/tiempos.csv");
         } catch (IOException e) {
-            System.err.println("  ✗ Error al escribir CSV: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    private static int[] generarDatos(int n) {
+        int[] arr = new int[n];
+        for (int i = 0; i < n; i++)
+            arr[i] = (int) (Math.random() * n);
+        return arr;
     }
 }
