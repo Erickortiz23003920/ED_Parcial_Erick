@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Proyecto Estructura de Datos — Fibonacci
 **Universidad Da Vinci de Guatemala**
 Ing. Brandon Chitay
@@ -272,3 +273,6 @@ mkdir -p resultados
 ## Tarea para el estudiante
 
 Modifica `TAMANOS` en `Main.java` para experimentar con distintos valores de n y observa como crecen los tiempos de forma lineal (iterativo) vs exponencial (recursivo).
+=======
+# ED_Parcial_Erick
+>>>>>>> fbca4920cf15d1cfb769963cc601fdc26964cdc9
